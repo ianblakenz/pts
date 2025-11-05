@@ -146,6 +146,17 @@
                         </div>
                     </div>
                     <div>
+                        <label class="text-sm font-medium text-slate-500">Last Pax Onboard</label>
+                         <div class="flex items-center justify-between">
+                            <p id="lastPaxTime" class="text-cyan-600 font-bold text-lg"></p>
+                            <button data-field="lastPaxOnboard" data-target-id="lastPaxTimeRecorded" data-wrapper-id="lastPaxTimeRecordedWrapper" class="record-time-btn bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold py-1 px-3 rounded-full">Record</button>
+                        </div>
+                        <div id="lastPaxTimeRecordedWrapper" class="hidden mt-1 text-right">
+                            <span class="text-xs font-semibold text-slate-500">Recorded:</span>
+                            <span id="lastPaxTimeRecorded" class="text-sm font-bold text-slate-700"></span>
+                        </div>
+                    </div>
+                    <div>
                         <label class="text-sm font-medium text-slate-500">Door Closed</label>
                          <div class="flex items-center justify-between">
                             <p id="doorTime" class="text-red-600 font-bold text-lg"></p>
@@ -406,6 +417,7 @@
             setText('crewTime', data.crewOnboard);
             setText('preBoardsTime', data.preBoards);
             setText('boardingTime', data.generalBoarding);
+            setText('lastPaxTime', data.lastPaxOnboard); // New field
             setText('doorTime', data.doorClosed);
             setValue('notesTextarea', data.notes);
 
@@ -476,6 +488,7 @@
             checkAndSetRecordedTime('crewTime', data.crewOnboard_actual);
             checkAndSetRecordedTime('preBoardsTime', data.preBoards_actual);
             checkAndSetRecordedTime('boardingTime', data.generalBoarding_actual);
+            checkAndSetRecordedTime('lastPaxTime', data.lastPaxOnboard_actual); // New field
             checkAndSetRecordedTime('doorTime', data.doorClosed_actual);
             checkAndSetSimpleRecordedTime('securityOffTime', data.securityOff_actual);
             checkAndSetSimpleRecordedTime('cateringOffTime', data.cateringOff_actual);
@@ -602,6 +615,7 @@
                     { label: 'Crew Onboard', planned: data.crewOnboard, actual: data.crewOnboard_actual },
                     { label: 'Pre Boards', planned: data.preBoards, actual: data.preBoards_actual },
                     { label: 'General Boarding', planned: data.generalBoarding, actual: data.generalBoarding_actual },
+                    { label: 'Last Pax Onboard', planned: data.lastPaxOnboard, actual: data.lastPaxOnboard_actual }, // New field
                     { label: 'Door Closed', planned: data.doorClosed, actual: data.doorClosed_actual },
                     { label: 'Security Off', planned: 'N/A', actual: data.securityOff_actual },
                     { label: 'Catering Off', planned: 'N/A', actual: data.cateringOff_actual }
@@ -723,6 +737,7 @@
             const crewTimeEl = document.getElementById('crewTime');
             const preBoardsTimeEl = document.getElementById('preBoardsTime');
             const boardingTimeEl = document.getElementById('boardingTime');
+            const lastPaxTimeEl = document.getElementById('lastPaxTime'); // New field
             const doorTimeEl = document.getElementById('doorTime');
 
             const handleDelayStatus = () => {
@@ -754,36 +769,42 @@
                 }
             };
             
+            // *** THIS IS THE NEW, FIXED FUNCTION ***
             const getTargetTime = (timeString) => {
-                if (!timeString) return null;
+                if (!timeString || !departureTimeZone) return null;
                 const timeRegex = /^(\d{1,2}):(\d{2})(:(\d{2}))?$/;
                 const match = timeString.match(timeRegex);
 
-                if (match && departureTimeZone) {
-                    const now = new Date();
-                    // Get today's date parts *in the target timezone*
-                    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: departureTimeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).split('-');
-                    const [year, month, day] = parts;
-                    
-                    const hours = match[1].padStart(2, '0');
-                    const minutes = match[2].padStart(2, '0');
-                    const seconds = match[4] ? match[4].padStart(2, '0') : '00';
-                    
-                    // This is the ISO string for the target time *in the target timezone*
-                    const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                if (match) {
+                    try {
+                        const now = new Date(); // Device's current time
 
-                    // To get the correct local time, we need to know the offset
-                    // Get a date object representing "now" in the target zone
-                    const dateInTargetZone = new Date(now.toLocaleString('en-US', { timeZone: departureTimeZone }));
-                    // Get a date object representing "now" in the local zone
-                    const dateInLocalZone = new Date(now.toLocaleString('en-US'));
-                    // Calculate the millisecond offset
-                    const offset = dateInTargetZone.getTime() - dateInLocalZone.getTime();
-                    
-                    // Create a date object from the ISO string (this assumes it's local)
-                    const localTargetDate = new Date(isoDateString);
-                    // Adjust it by the offset to get the *actual* local time that corresponds to the target time
-                    return new Date(localTargetDate.getTime() - offset);
+                        // Get a Date object representing the *current* time in the port's zone
+                        // e.g., if device is 9:00 Perth, and port is Sydney, this creates a Date object for 12:00 (device time)
+                        const nowInPortZone = new Date(now.toLocaleString('en-US', { timeZone: departureTimeZone }));
+
+                        // Create a *new* Date object, starting with the port's current date
+                        const targetTimeInPortZone = new Date(
+                            nowInPortZone.getFullYear(), 
+                            nowInPortZone.getMonth(), 
+                            nowInPortZone.getDate()
+                        );
+                        
+                        // Set the target time on this new Date object
+                        targetTimeInPortZone.setHours(parseInt(match[1]));
+                        targetTimeInPortZone.setMinutes(parseInt(match[2]));
+                        targetTimeInPortZone.setSeconds(match[4] ? parseInt(match[4]) : 0);
+                        targetTimeInPortZone.setMilliseconds(0);
+                        
+                        // Get the difference in milliseconds
+                        const diff = targetTimeInPortZone.getTime() - nowInPortZone.getTime();
+
+                        // Return a new Date object that is 'diff' milliseconds in the future *from the device's perspective*.
+                        return new Date(now.getTime() + diff);
+                    } catch (e) {
+                        console.error("Error in getTargetTime:", e);
+                        return null; // Prevent crashes
+                    }
                 }
                 return null;
             };
@@ -798,16 +819,18 @@
                         el.textContent = actualTime; // If there's a recorded time, show it.
                         return;
                     }
+                    
                     const targetTime = getTargetTime(plannedTime);
+                    
                     if (targetTime) {
                         const diff = targetTime.getTime() - now.getTime();
+                        
                         if (diff > 0) {
                             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
                             const minutes = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
                             const seconds = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
                             el.textContent = `-${hours}:${minutes}:${seconds}`;
 
-                            // *** THIS IS THE FIX ***
                             // Check if diff is at or below 1 minute (60000ms) and not sent
                             if (diff <= 60000 && !window.notificationsSent[fieldName]) {
                                 console.log(`Sending notification for ${eventName}`);
@@ -817,17 +840,19 @@
 
                         } else {
                             el.textContent = `COMPLETED`;
-                            el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600');
+                            el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600', 'text-cyan-600');
                             el.classList.add('text-slate-500');
                         }
                     } else {
-                        el.textContent = plannedTime || ''; // Show planned time or empty string
+                        // If getTargetTime fails or returns null, show the planned time or empty
+                        el.textContent = plannedTime || ''; 
                     }
                 };
 
                 updateTimerElement(crewTimeEl, docData.crewOnboard, docData.crewOnboard_actual, 'Crew Onboard', 'crewOnboard');
                 updateTimerElement(preBoardsTimeEl, docData.preBoards, docData.preBoards_actual, 'Pre Boards', 'preBoards');
                 updateTimerElement(boardingTimeEl, docData.generalBoarding, docData.generalBoarding_actual, 'General Boarding', 'generalBoarding');
+                updateTimerElement(lastPaxTimeEl, docData.lastPaxOnboard, docData.lastPaxOnboard_actual, 'Last Pax', 'lastPaxOnboard'); // New field
                 updateTimerElement(doorTimeEl, docData.doorClosed, docData.doorClosed_actual, 'Door Closed', 'doorClosed');
             };
             
@@ -838,6 +863,7 @@
                 crewTimeEl.textContent = docData.crewOnboard || '';
                 preBoardsTimeEl.textContent = docData.preBoards || '';
                 boardingTimeEl.textContent = docData.generalBoarding || '';
+                lastPaxTimeEl.textContent = docData.lastPaxOnboard || ''; // New field
                 doorTimeEl.textContent = docData.doorClosed || '';
                 
                 if (startBtn) {
@@ -851,8 +877,8 @@
 
             const startTimer = () => {
                 window.notificationsSent = {}; // Reset flags every time timer starts
-                updateCountdowns();
-                timerInterval = setInterval(updateCountdowns, 1000);
+                updateCountdowns(); // Run once immediately
+                timerInterval = setInterval(updateCountdowns, 1000); // Run every second
                 if(startBtn) {
                     startBtn.textContent = 'Stop Timer';
                     startBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
@@ -872,7 +898,7 @@
                                 if (permission === 'granted') {
                                     console.log('Notification permission granted.');
                                     startTimer();
-Do you want me to update the `index.html` file as well, or just the `pts_v9.html` file? They appear to be very similar, with `index.html` having one extra "Last Pax Onboard" field.                                } else {
+                                } else {
                                     console.log('Notification permission denied.');
                                     alert('You must allow notifications to use the timer alerts. Timer will start without alerts.');
                                     startTimer();
