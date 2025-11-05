@@ -274,7 +274,7 @@
         let db;
         let currentFlightId = null; // Store the flight ID globally
         let departureTimeZone = null; // Store the timezone globally
-        let timerInterval = null;
+        let mainTimerInterval = null; // *** RENAMED: This is now the *only* timer
         let isTimerRunning = false;
         
         // Object to track if a notification has been sent for an event
@@ -543,8 +543,8 @@
             }
         }
 
-        // *** NEW: Notification function for 00:00:00 ***
-        function sendNotificationAtZero(title, fieldName) {
+        // Notification function
+        function sendNotification(title, fieldName) {
             if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
                 navigator.serviceWorker.ready.then(registration => {
                     registration.showNotification(title + ' - Time to Record!', {
@@ -755,6 +755,7 @@
                 }
             };
             
+            // This function now *only* updates the clocks
             const updateClocks = () => {
                 const now = new Date();
                 if (currentTimeEl) {
@@ -762,7 +763,6 @@
                 }
                 if (departureTimeEl && departureTimeZone) {
                     try {
-                        // THIS IS THE KEY: Ensure the port clock is *always* 24-hour and includes seconds
                         departureTimeEl.textContent = now.toLocaleTimeString('en-GB', { timeZone: departureTimeZone, hour12: false });
                     } catch (e) {
                         departureTimeEl.textContent = "Invalid Zone";
@@ -790,6 +790,7 @@
                 return `-${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             };
 
+            // This function now *only* updates the countdowns
             const updateCountdowns = () => {
                 // This is the current port time, e.g., "10:29:58"
                 const currentTimeString = departureTimeEl.textContent;
@@ -817,26 +818,18 @@
 
                     if (diffInSeconds > 0) {
                         el.textContent = secondsToTime(diffInSeconds);
-
-                        // *** NEW TRIGGER: Fire notification at T-minus 1 second ***
-                        if (diffInSeconds === 1 && !window.notificationsSent[fieldName]) {
-                            console.log(`Sending notification for ${eventName} at T-1 second.`);
-                            window.notificationsSent[fieldName] = true;
-                            sendNotificationAtZero(eventName, fieldName); // Re-using this function, title is fine
-                        }
-
                     } else {
                         // This block is entered when diff is <= 0 (timer reached 0 or passed it)
                         el.textContent = `COMPLETED`;
                         el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600', 'text-cyan-600');
                         el.classList.add('text-slate-500');
 
-                        // Failsafe trigger: If the T-1s was missed (e.g., background lag)
-                        // trigger it as soon as it hits 0 or less, once.
+                        // *** THIS IS THE TRIGGER ***
+                        // Fire *once* when the timer first hits 0 or less
                         if (!window.notificationsSent[fieldName]) {
-                            console.log(`Sending failsafe notification for ${eventName}.`);
+                            console.log(`Sending notification for ${eventName} at T=0.`);
                             window.notificationsSent[fieldName] = true;
-                            sendNotificationAtZero(eventName, fieldName);
+                            sendNotification(eventName, fieldName);
                         }
                     }
                 };
@@ -848,9 +841,15 @@
                 updateTimerElement(doorTimeEl, docData.doorClosed, docData.doorClosed_actual, 'Door Closed', 'doorClosed');
             };
             
+            // *** NEW: This is the single, synchronized timer ***
+            const runTimerTick = () => {
+                updateClocks(); // First, update the clocks
+                updateCountdowns(); // *Then*, update the countdowns using the new clock time
+            };
+            
             const stopTimer = () => {
-                clearInterval(timerInterval);
-                timerInterval = null;
+                clearInterval(mainTimerInterval); // Stop the *only* timer
+                mainTimerInterval = null;
                 const docData = window.currentFlightData || {};
                 crewTimeEl.textContent = docData.crewOnboard || '';
                 preBoardsTimeEl.textContent = docData.preBoards || '';
@@ -869,8 +868,8 @@
 
             const startTimer = () => {
                 window.notificationsSent = {}; // Reset flags every time timer starts
-                updateCountdowns(); // Run once immediately
-                timerInterval = setInterval(updateCountdowns, 1000); // Run every second
+                runTimerTick(); // Run once immediately to sync
+                mainTimerInterval = setInterval(runTimerTick, 1000); // Run the synchronized tick every second
                 if(startBtn) {
                     startBtn.textContent = 'Stop Timer';
                     startBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
@@ -904,8 +903,9 @@
             }
             
             handleDelayStatus();
-            updateClocks(); // Run once to set the clocks
-            setInterval(updateClocks, 1000); // Keep clocks ticking
+            updateClocks(); // Run once on load to set the clocks
+            // A separate interval *just for the clocks* is fine, as it's not tied to the notification logic
+            setInterval(updateClocks, 1000); 
         
         }
 
