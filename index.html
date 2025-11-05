@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flight Scenario Information</title>
+    <title>PTS Timer App</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0284c7"> <link rel="apple-touch-icon" href="icon-192.png"> <link rel="manifest" href="manifest.json">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -27,9 +32,8 @@
     </style>
 </head>
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
-    <!-- Main container for the flight information card -->
+    
     <div id="flightCard" class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in hidden">
-        <!-- Status Section -->
         <div class="p-6 border-b border-slate-200">
              <div class="flex items-center">
                 <div class="mr-4">
@@ -42,7 +46,6 @@
         </div>
         
         <div class="p-6 sm:p-8">
-            <!-- Route Information -->
             <div class="flex items-center justify-between mb-8 pb-8 border-b border-slate-200">
                 <div class="text-left">
                     <p id="iataFrom" class="text-4xl font-bold text-slate-800"></p>
@@ -57,9 +60,7 @@
                 </div>
             </div>
 
-            <!-- Main Details Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <!-- Flight Details Section -->
                 <div class="md-col-span-1 space-y-6">
                     <h3 class="font-bold text-lg text-slate-700 border-b pb-2">Flight Details</h3>
                     <div>
@@ -92,10 +93,8 @@
                     </div>
                 </div>
 
-                <!-- PTS Section -->
                 <div class="md-col-span-1 space-y-6">
                     <h3 class="font-bold text-lg text-slate-700 border-b pb-2">PTS</h3>
-                    <!-- Timer Control Section -->
                     <div class="bg-slate-50 p-4 rounded-lg">
                         <div id="timeContainer" class="grid grid-cols-2 gap-4 mb-4">
                             <div class="text-center">
@@ -146,18 +145,6 @@
                             <span id="boardingTimeRecorded" class="text-sm font-bold text-slate-700"></span>
                         </div>
                     </div>
-                    <!-- NEW: Last Pax Onboard -->
-                    <div>
-                        <label class="text-sm font-medium text-slate-500">Last Pax Onboard</label>
-                         <div class="flex items-center justify-between">
-                            <p id="lastPaxTime" class="text-cyan-600 font-bold text-lg"></p>
-                            <button data-field="lastPaxOnboard" data-target-id="lastPaxTimeRecorded" data-wrapper-id="lastPaxTimeRecordedWrapper" class="record-time-btn bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold py-1 px-3 rounded-full">Record</button>
-                        </div>
-                        <div id="lastPaxTimeRecordedWrapper" class="hidden mt-1 text-right">
-                            <span class="text-xs font-semibold text-slate-500">Recorded:</span>
-                            <span id="lastPaxTimeRecorded" class="text-sm font-bold text-slate-700"></span>
-                        </div>
-                    </div>
                     <div>
                         <label class="text-sm font-medium text-slate-500">Door Closed</label>
                          <div class="flex items-center justify-between">
@@ -185,7 +172,6 @@
                     </div>
                 </div>
 
-                <!-- Notes Section -->
                 <div class="md:col-span-2 mt-6">
                     <h3 class="font-bold text-lg text-slate-700 border-b pb-2 mb-2">Notes</h3>
                     <textarea id="notesTextarea" rows="4" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Add any notes here..."></textarea>
@@ -198,7 +184,6 @@
             </div>
         </div>
 
-        <!-- Action Buttons Section -->
         <div class="p-6 bg-slate-50 border-t border-slate-200">
             <div class="grid grid-cols-2 gap-4">
                 <button id="generateReportBtn" class="block w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75">
@@ -209,7 +194,6 @@
                 </a>
             </div>
 
-            <!-- Conditional Actions based on source -->
             <div id="appSourceActions" class="hidden mt-4 text-center">
                  <button id="copyLinkBtn" class="w-full text-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75">
                     Copy Link
@@ -220,11 +204,31 @@
             <div id="websiteSourceActions" class="hidden mt-4 text-center">
                  <p class="text-xs text-slate-500">This page can be revisited by saving this link. Links expire after 7 days.</p>
             </div>
+
+            <div class="mt-4 text-center">
+                <button id="clearFlightBtn" class="text-sm text-slate-500 hover:text-red-600 transition-colors">
+                    Load a different flight
+                </button>
+            </div>
         </div>
     </div>
+    
     <div id="messageCenter" class="text-center"></div>
 
-    <!-- Report Modal -->
+    <div id="idInputModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden animate-fade-in">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4">Load Flight</h2>
+            <p class="text-slate-600 mb-4">Please paste your PTS URL to load the flight data.</p>
+            <div class="space-y-4">
+                <input type="url" id="flightUrlInput" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500" placeholder="https://new.faaa.com.au/...">
+                <button id="loadFlightBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 shadow-md">
+                    Load Flight
+                </button>
+            </div>
+        </div>
+    </div>
+
+
     <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full overflow-y-auto p-6 relative animate-fade-in">
             <button id="closeReportBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -243,6 +247,9 @@
         import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Initialization ---
+        // NOTE: The apiKey below is a client-side key and is intended to be public. 
+        // Cloudflare may flag this as a "secret," but this is expected for Firebase. 
+        // Security is enforced by your Firestore Security Rules.
         const firebaseConfig = {
           apiKey: "AIzaSyCoI0RVe0DehkFjyIsOPv77rJiFnmpAS00",
           authDomain: "allowances-app-pts.firebaseapp.com",
@@ -254,21 +261,25 @@
         };
 
         let db;
+        let currentFlightId = null; // Store the flight ID globally
+        let departureTimeZone = null; // Store the timezone globally
+        let timerInterval = null;
+        let isTimerRunning = false;
+        
+        // Object to track if a notification has been sent for an event
+        window.notificationsSent = {};
         
         async function initializeAndFetch() {
             if (firebaseConfig) {
-                console.log("Firebase config found. Initializing...");
                 try {
                     const app = initializeApp(firebaseConfig);
                     const auth = getAuth(app);
                     db = getFirestore(app);
-                    console.log("Firebase initialized successfully.");
-                    
                     await signInAnonymously(auth);
-                    console.log("Auth successful. User UID:", auth.currentUser?.uid);
+                    console.log("Firebase initialized and user signed in.");
                 } catch (error) {
                     console.error("Firebase initialization failed:", error);
-                    document.getElementById('messageCenter').innerHTML = `<h1 class="text-2xl font-bold text-red-600">Error</h1><p class="text-slate-600 mt-2">Could not connect to the database. Check console for details.</p>`;
+                    document.getElementById('messageCenter').innerHTML = `<h1 class="text-2xl font-bold text-red-600">Error</h1><p class="text-slate-600 mt-2">Could not connect to the database.</p>`;
                     return;
                 }
             } else {
@@ -278,17 +289,65 @@
             }
             
             const urlParams = new URLSearchParams(window.location.search);
-            const flightId = urlParams.get('id');
+            const idFromUrl = urlParams.get('id');
+            const idFromStorage = localStorage.getItem('ptsFlightId');
             const messageCenter = document.getElementById('messageCenter');
-            
-            console.log("DOM loaded. Flight ID from URL:", flightId);
 
-            if (flightId) {
-                messageCenter.innerHTML = `<p class="text-slate-600">Loading flight data for ${flightId}...</p>`;
-                setupRealtimeListener(flightId);
-            } else {
-                messageCenter.innerHTML = `<h1 class="text-2xl font-bold">No Flight Specified</h1><p class="text-slate-600 mt-2">Please provide a flight ID from your Firebase 'flights' collection in the URL. <br>Example: ?id=QF430-20251005</p>`;
+            let flightIdToLoad = null;
+
+            if (idFromUrl) {
+                flightIdToLoad = idFromUrl;
+                localStorage.setItem('ptsFlightId', idFromUrl); // Save it for next time
+            } else if (idFromStorage) {
+                flightIdToLoad = idFromStorage;
             }
+
+            if (flightIdToLoad) {
+                messageCenter.innerHTML = `<p class="text-slate-600">Loading flight data for ${flightIdToLoad}...</p>`;
+                setupRealtimeListener(flightIdToLoad);
+            } else {
+                // No ID in URL or storage, show the modal
+                document.getElementById('idInputModal').classList.remove('hidden');
+            }
+
+            // Setup modal button listener
+            document.getElementById('loadFlightBtn').addEventListener('click', () => {
+                const urlInput = document.getElementById('flightUrlInput').value;
+                if (!urlInput) {
+                    alert("Please paste the URL.");
+                    return;
+                }
+                
+                let flightId = null;
+                try {
+                    // Try to parse as a full URL
+                    const parsedUrl = new URL(urlInput);
+                    flightId = parsedUrl.searchParams.get('id');
+                } catch (e) {
+                    // If parsing fails, assume it's just the ID or the user pasted the part after '='
+                    const parts = urlInput.split('=');
+                    flightId = parts[parts.length - 1];
+                }
+
+                if (flightId) {
+                    localStorage.setItem('ptsFlightId', flightId);
+                    document.getElementById('idInputModal').classList.add('hidden');
+                    document.getElementById('messageCenter').innerHTML = `<p class="text-slate-600">Loading flight data for ${flightId}...</p>`;
+                    setupRealtimeListener(flightId);
+                } else {
+                    alert("Could not find a flight ID in the URL you pasted. Please check the URL and try again.");
+                }
+            });
+
+            // Setup "Clear Flight" button
+            document.getElementById('clearFlightBtn').addEventListener('click', () => {
+                localStorage.removeItem('ptsFlightId');
+                currentFlightId = null;
+                document.getElementById('flightCard').classList.add('hidden');
+                document.getElementById('idInputModal').classList.remove('hidden');
+                document.getElementById('flightUrlInput').value = '';
+                if (isTimerRunning) stopTimer();
+            });
         }
         
         function setupRealtimeListener(flightId) {
@@ -296,6 +355,7 @@
                 console.error("Firestore database instance (db) is not available.");
                 return;
             }
+            currentFlightId = flightId; // Save the ID globally
             const docRef = doc(db, 'artifacts/allowances-app-pts/public/data/flights', flightId);
 
             onSnapshot(docRef, (docSnap) => {
@@ -308,6 +368,7 @@
                 } else {
                     console.log("Document does not exist at the specified path.");
                     messageCenter.innerHTML = `<h1 class="text-2xl font-bold text-red-600">Not Found</h1><p class="text-slate-600 mt-2">No flight data found for ID: ${flightId}. Please check the ID and the Firestore path.</p>`;
+                    localStorage.removeItem('ptsFlightId'); // Clear bad ID
                 }
             }, (error) => {
                  console.error("Caught error in realtime listener:", error);
@@ -345,17 +406,14 @@
             setText('crewTime', data.crewOnboard);
             setText('preBoardsTime', data.preBoards);
             setText('boardingTime', data.generalBoarding);
-            setText('lastPaxTime', data.lastPaxOnboard); // New field
             setText('doorTime', data.doorClosed);
             setValue('notesTextarea', data.notes);
 
-            // Handle source-based UI changes
             const source = data.source;
             const createNewPtsBtn = document.getElementById('createNewPtsBtn');
             const appSourceActions = document.getElementById('appSourceActions');
             const websiteSourceActions = document.getElementById('websiteSourceActions');
 
-            // Hide both to reset state on data refresh
             if (appSourceActions) appSourceActions.classList.add('hidden');
             if (websiteSourceActions) websiteSourceActions.classList.add('hidden');
             
@@ -368,7 +426,6 @@
             } else {
                  if (createNewPtsBtn) createNewPtsBtn.href = 'https://www.myallowancesapp.com/pts-form';
             }
-
 
             const checkAndSetRecordedTime = (baseId, actualValue) => {
                 const wrapper = document.getElementById(`${baseId}RecordedWrapper`);
@@ -419,7 +476,6 @@
             checkAndSetRecordedTime('crewTime', data.crewOnboard_actual);
             checkAndSetRecordedTime('preBoardsTime', data.preBoards_actual);
             checkAndSetRecordedTime('boardingTime', data.generalBoarding_actual);
-            checkAndSetRecordedTime('lastPaxTime', data.lastPaxOnboard_actual); // New field
             checkAndSetRecordedTime('doorTime', data.doorClosed_actual);
             checkAndSetSimpleRecordedTime('securityOffTime', data.securityOff_actual);
             checkAndSetSimpleRecordedTime('cateringOffTime', data.cateringOff_actual);
@@ -431,12 +487,75 @@
             }
         }
 
+        // Refactored function to record time
+        async function recordTime(fieldBaseName, btnEl) {
+            const fieldToUpdate = fieldBaseName + '_actual';
+
+            if (!departureTimeZone) {
+                alert("Departure time zone is not set, cannot record local time.");
+                return;
+            }
+            if (!currentFlightId || !db) {
+                alert("Database connection not ready or no flight loaded.");
+                return;
+            }
+
+            const now = new Date();
+            const formattedTime = new Intl.DateTimeFormat('en-GB', {
+                timeZone: departureTimeZone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).format(now);
+
+            // Disable button if it was passed
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.textContent = 'Saving...';
+            }
+
+            try {
+                const docRef = doc(db, 'artifacts/allowances-app-pts/public/data/flights', currentFlightId);
+                await updateDoc(docRef, { [fieldToUpdate]: formattedTime });
+                console.log(`Successfully updated ${fieldToUpdate} to ${formattedTime}`);
+                // The onSnapshot listener will automatically update the UI
+            } catch (error) {
+                console.error(`Failed to update ${fieldBaseName}:`, error);
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.textContent = 'Retry';
+                }
+                alert(`Failed to save the time. Please check your Firestore security rules and console for errors.`);
+            }
+        }
+
+        // Function to send a notification
+        function sendNotification(title, fieldName) {
+            if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title + ' in 1 minute!', {
+                        body: 'You can record the time now or extend the reminder.',
+                        icon: 'icon-192.png', // Make sure you have this icon
+                        badge: 'icon-72.png', // And this one
+                        vibrate: [200, 100, 200],
+                        data: { fieldName: fieldName, title: title },
+                        actions: [
+                            { action: 'record', title: 'Record' },
+                            { action: 'extend', title: 'Extend (1 min)' }
+                        ]
+                    });
+                });
+            }
+        }
+
+
         function initializeUI(departureIATA, flightId) {
             const timezoneMap = {
                 'ADL': 'Australia/Adelaide', 'ABX': 'Australia/Sydney', 'ASP': 'Australia/Darwin', 'ARM': 'Australia/Sydney', 'BNK': 'Australia/Sydney', 'BCI': 'Australia/Brisbane', 'BXG': 'Australia/Melbourne', 'BKQ': 'Australia/Brisbane', 'BNE': 'Australia/Brisbane', 'BHQ': 'Australia/Broken_Hill', 'BME': 'Australia/Perth', 'BDB': 'Australia/Brisbane', 'BWT': 'Australia/Hobart', 'BQB': 'Australia/Perth', 'CNS': 'Australia/Brisbane', 'CBR': 'Australia/Canberra', 'CNJ': 'Australia/Brisbane', 'CFS': 'Australia/Sydney', 'DRW': 'Australia/Darwin', 'DPO': 'Australia/Hobart', 'DBO': 'Australia/Sydney', 'EMD': 'Australia/Brisbane', 'LEA': 'Australia/Perth', 'GET': 'Australia/Perth', 'GLT': 'Australia/Brisbane', 'OOL': 'Australia/Brisbane', 'GFF': 'Australia/Sydney', 'HTI': 'Australia/Brisbane', 'HVB': 'Australia/Brisbane', 'HBA': 'Australia/Hobart', 'HID': 'Australia/Brisbane', 'KGI': 'Australia/Perth', 'KTA': 'Australia/Perth', 'KGC': 'Australia/Adelaide', 'LST': 'Australia/Hobart', 'LRE': 'Australia/Brisbane', 'LDH': 'Australia/Lord_Howe', 'MKY': 'Australia/Brisbane', 'MEL': 'Australia/Melbourne', 'MIM': 'Australia/Sydney', 'MQL': 'Australia/Melbourne', 'WLE': 'Australia/Brisbane', 'MOV': 'Australia/Brisbane', 'MRZ': 'Australia/Sydney', 'MGB': 'Australia/Adelaide', 'ISA': 'Australia/Brisbane', 'NTL': 'Australia/Sydney', 'ZNE': 'Australia/Perth', 'ONS': 'Australia/Perth', 'OAG': 'Australia/Sydney', 'PBO': 'Australia/Perth', 'PER': 'Australia/Perth', 'PHE': 'Australia/Perth', 'PLO': 'Australia/Adelaide', 'PQQ': 'Australia/Sydney', 'PPP': 'Australia/Brisbane', 'ROK': 'Australia/Brisbane', 'MCY': 'Australia/Brisbane', 'SYD': 'Australia/Sydney', 'TMW': 'Australia/Sydney', 'WTB': 'Australia/Brisbane', 'TSV': 'Australia/Brisbane', 'WGA': 'Australia/Sydney', 'WEI': 'Australia/Brisbane', 'WYA': 'Australia/Adelaide', 'AYQ': 'Australia/Darwin',
                 'YVR': 'America/Vancouver', 'SCL': 'America/Santiago', 'HKG': 'Asia/Hong_Kong', 'BLR': 'Asia/Kolkata', 'DEL': 'Asia/Kolkata', 'DPS': 'Asia/Makassar', 'CGK': 'Asia/Jakarta', 'FCO': 'Europe/Rome', 'CTS': 'Asia/Tokyo', 'HND': 'Asia/Tokyo', 'NRT': 'Asia/Tokyo', 'NOU': 'Pacific/Noumea', 'AKL': 'Pacific/Auckland', 'CHC': 'Pacific/Auckland', 'ZQN': 'Pacific/Auckland', 'WLG': 'Pacific/Auckland', 'NLK': 'Pacific/Norfolk', 'ROR': 'Pacific/Palau', 'POM': 'Pacific/Port_Moresby', 'MNL': 'Asia/Manila', 'APW': 'Pacific/Apia', 'SIN': 'Asia/Singapore', 'HIR': 'Pacific/Guadalcanal', 'JNB': 'Africa/Johannesburg', 'BKK': 'Asia/Bangkok', 'DIL': 'Asia/Dili', 'TBU': 'Pacific/Tongatapu', 'LHR': 'Europe/London', 'DFW': 'America/Chicago', 'HNL': 'Pacific/Honolulu', 'LAX': 'America/Los_Angeles', 'JFK': 'America/New_York', 'SFO': 'America/Los_Angeles', 'VLI': 'Pacific/Efate'
             };
-            const departureTimeZone = timezoneMap[departureIATA];
+            departureTimeZone = timezoneMap[departureIATA]; // Set global variable
 
             const startBtn = document.getElementById('startTimerBtn');
             const currentTimeEl = document.getElementById('currentTime');
@@ -483,7 +602,6 @@
                     { label: 'Crew Onboard', planned: data.crewOnboard, actual: data.crewOnboard_actual },
                     { label: 'Pre Boards', planned: data.preBoards, actual: data.preBoards_actual },
                     { label: 'General Boarding', planned: data.generalBoarding, actual: data.generalBoarding_actual },
-                    { label: 'Last Pax Onboard', planned: data.lastPaxOnboard, actual: data.lastPaxOnboard_actual }, // New field
                     { label: 'Door Closed', planned: data.doorClosed, actual: data.doorClosed_actual },
                     { label: 'Security Off', planned: 'N/A', actual: data.securityOff_actual },
                     { label: 'Catering Off', planned: 'N/A', actual: data.cateringOff_actual }
@@ -540,40 +658,13 @@
                 }
             });
 
-
+            // --- Record Buttons ---
+            // Updated to use the refactored recordTime function
             const recordButtons = document.querySelectorAll('.record-time-btn');
             recordButtons.forEach(btn => {
-                btn.addEventListener('click', async () => {
+                btn.addEventListener('click', () => {
                     const fieldBaseName = btn.dataset.field;
-                    const fieldToUpdate = fieldBaseName + '_actual';
-
-                    if (!departureTimeZone) {
-                        alert("Departure time zone is not set, cannot record local time.");
-                        return;
-                    }
-
-                    const now = new Date();
-                    const formattedTime = new Intl.DateTimeFormat('en-GB', {
-                        timeZone: departureTimeZone,
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    }).format(now);
-
-                    btn.disabled = true;
-                    btn.textContent = 'Saving...';
-
-                    try {
-                        const docRef = doc(db, 'artifacts/allowances-app-pts/public/data/flights', flightId);
-                        await updateDoc(docRef, { [fieldToUpdate]: formattedTime });
-                        console.log(`Successfully updated ${fieldToUpdate} to ${formattedTime}`);
-                    } catch (error) {
-                        console.error(`Failed to update ${fieldBaseName}:`, error);
-                        btn.disabled = false;
-                        btn.textContent = 'Retry';
-                        alert(`Failed to save the time. Please check your Firestore security rules and console for errors.`);
-                    }
+                    recordTime(fieldBaseName, btn); // Pass the button element
                 });
             });
             
@@ -632,11 +723,7 @@
             const crewTimeEl = document.getElementById('crewTime');
             const preBoardsTimeEl = document.getElementById('preBoardsTime');
             const boardingTimeEl = document.getElementById('boardingTime');
-            const lastPaxTimeEl = document.getElementById('lastPaxTime'); // New field
             const doorTimeEl = document.getElementById('doorTime');
-            
-            let timerInterval = null;
-            let isTimerRunning = false;
 
             const handleDelayStatus = () => {
                 const statusText = delayStatusEl.textContent.trim().toLowerCase();
@@ -668,23 +755,34 @@
             };
             
             const getTargetTime = (timeString) => {
-                if (!timeString) return null; // FIX: Prevent error if timeString is undefined
+                if (!timeString) return null;
                 const timeRegex = /^(\d{1,2}):(\d{2})(:(\d{2}))?$/;
                 const match = timeString.match(timeRegex);
 
                 if (match && departureTimeZone) {
                     const now = new Date();
-                    const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: departureTimeZone }).format(now).split(' ')[0];
+                    // Get today's date parts *in the target timezone*
+                    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: departureTimeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).split('-');
+                    const [year, month, day] = parts;
+                    
                     const hours = match[1].padStart(2, '0');
                     const minutes = match[2].padStart(2, '0');
                     const seconds = match[4] ? match[4].padStart(2, '0') : '00';
-                    const isoDateString = `${dateParts}T${hours}:${minutes}:${seconds}`;
+                    
+                    // This is the ISO string for the target time *in the target timezone*
+                    const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 
+                    // To get the correct local time, we need to know the offset
+                    // Get a date object representing "now" in the target zone
                     const dateInTargetZone = new Date(now.toLocaleString('en-US', { timeZone: departureTimeZone }));
+                    // Get a date object representing "now" in the local zone
                     const dateInLocalZone = new Date(now.toLocaleString('en-US'));
+                    // Calculate the millisecond offset
                     const offset = dateInTargetZone.getTime() - dateInLocalZone.getTime();
                     
+                    // Create a date object from the ISO string (this assumes it's local)
                     const localTargetDate = new Date(isoDateString);
+                    // Adjust it by the offset to get the *actual* local time that corresponds to the target time
                     return new Date(localTargetDate.getTime() - offset);
                 }
                 return null;
@@ -694,7 +792,8 @@
                 const now = new Date();
                 const docData = window.currentFlightData || {};
 
-                const updateTimerElement = (el, plannedTime, actualTime) => {
+                // Helper function for a single timer
+                const updateTimerElement = (el, plannedTime, actualTime, eventName, fieldName) => {
                     if (actualTime) {
                         el.textContent = actualTime; // If there's a recorded time, show it.
                         return;
@@ -707,9 +806,18 @@
                             const minutes = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
                             const seconds = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
                             el.textContent = `-${hours}:${minutes}:${seconds}`;
+
+                            // *** THIS IS THE FIX ***
+                            // Check if diff is at or below 1 minute (60000ms) and not sent
+                            if (diff <= 60000 && !window.notificationsSent[fieldName]) {
+                                console.log(`Sending notification for ${eventName}`);
+                                window.notificationsSent[fieldName] = true; // Mark as sent
+                                sendNotification(eventName, fieldName);
+                            }
+
                         } else {
                             el.textContent = `COMPLETED`;
-                            el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600', 'text-cyan-600');
+                            el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600');
                             el.classList.add('text-slate-500');
                         }
                     } else {
@@ -717,11 +825,10 @@
                     }
                 };
 
-                updateTimerElement(crewTimeEl, docData.crewOnboard, docData.crewOnboard_actual);
-                updateTimerElement(preBoardsTimeEl, docData.preBoards, docData.preBoards_actual);
-                updateTimerElement(boardingTimeEl, docData.generalBoarding, docData.generalBoarding_actual);
-                updateTimerElement(lastPaxTimeEl, docData.lastPaxOnboard, docData.lastPaxOnboard_actual); // New field
-                updateTimerElement(doorTimeEl, docData.doorClosed, docData.doorClosed_actual);
+                updateTimerElement(crewTimeEl, docData.crewOnboard, docData.crewOnboard_actual, 'Crew Onboard', 'crewOnboard');
+                updateTimerElement(preBoardsTimeEl, docData.preBoards, docData.preBoards_actual, 'Pre Boards', 'preBoards');
+                updateTimerElement(boardingTimeEl, docData.generalBoarding, docData.generalBoarding_actual, 'General Boarding', 'generalBoarding');
+                updateTimerElement(doorTimeEl, docData.doorClosed, docData.doorClosed_actual, 'Door Closed', 'doorClosed');
             };
             
             const stopTimer = () => {
@@ -731,7 +838,6 @@
                 crewTimeEl.textContent = docData.crewOnboard || '';
                 preBoardsTimeEl.textContent = docData.preBoards || '';
                 boardingTimeEl.textContent = docData.generalBoarding || '';
-                lastPaxTimeEl.textContent = docData.lastPaxOnboard || ''; // New field
                 doorTimeEl.textContent = docData.doorClosed || '';
                 
                 if (startBtn) {
@@ -740,9 +846,11 @@
                     startBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
                 }
                 isTimerRunning = false;
+                window.notificationsSent = {}; // Reset notification flags
             };
 
             const startTimer = () => {
+                window.notificationsSent = {}; // Reset flags every time timer starts
                 updateCountdowns();
                 timerInterval = setInterval(updateCountdowns, 1000);
                 if(startBtn) {
@@ -758,7 +866,21 @@
                     if (isTimerRunning) {
                         stopTimer();
                     } else {
-                        startTimer();
+                        // Request notification permission
+                        if ('Notification' in window && Notification.permission !== 'granted') {
+                            Notification.requestPermission().then(permission => {
+                                if (permission === 'granted') {
+                                    console.log('Notification permission granted.');
+                                    startTimer();
+Do you want me to update the `index.html` file as well, or just the `pts_v9.html` file? They appear to be very similar, with `index.html` having one extra "Last Pax Onboard" field.                                } else {
+                                    console.log('Notification permission denied.');
+                                    alert('You must allow notifications to use the timer alerts. Timer will start without alerts.');
+                                    startTimer();
+                                }
+                            });
+                        } else {
+                            startTimer();
+                        }
                     }
                 });
             }
@@ -767,6 +889,28 @@
             updateClocks();
             setInterval(updateClocks, 1000);
         
+        }
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+
+            // Listen for messages from the service worker (e.g., "record")
+            navigator.serviceWorker.addEventListener('message', event => {
+                console.log('Message received from service worker:', event.data);
+                if (event.data && event.data.action === 'record') {
+                    // Call the recordTime function, passing 'null' for the button element
+                    recordTime(event.data.fieldName, null);
+                }
+            });
         }
 
         // Run the initialization and fetching logic

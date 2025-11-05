@@ -1,6 +1,6 @@
 // A simple service worker for PWA functionality and notifications
 
-const CACHE_NAME = 'pts-timer-cache-v1';
+const CACHE_NAME = 'pts-timer-cache-v2';
 const urlsToCache = [
   './pts_app.html',
   './manifest.json'
