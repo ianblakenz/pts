@@ -1,0 +1,97 @@
+// A simple service worker for PWA functionality and notifications
+
+const CACHE_NAME = 'pts-timer-cache-v1';
+const urlsToCache = [
+  './pts_app.html',
+  './manifest.json'
+  // Add other assets here, like 'icon-192.png'
+];
+
+// Install event: cache core app shell files
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+// Activate event: clean up old caches if any
+self.addEventListener('activate', event => {
+  console.log('Service worker activated.');
+});
+
+// Fetch event: serve from cache if available
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      }
+    )
+  );
+});
+
+// --- Notification Click Handler ---
+self.addEventListener('notificationclick', event => {
+  console.log('Notification clicked:', event);
+  
+  // Close the notification
+  event.notification.close();
+
+  const action = event.action;
+  const data = event.notification.data;
+
+  if (action === 'record') {
+    // --- RECORD ACTION ---
+    console.log('Record action taken for:', data.fieldName);
+    
+    // Find the client (the open app window) and send it a message
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window' }).then(clientList => {
+        for (const client of clientList) {
+          // Send a message to the main page to trigger the recordTime function
+          client.postMessage({
+            action: 'record',
+            fieldName: data.fieldName
+          });
+          
+          // Optional: focus the window
+          if (client.focus) {
+            return client.focus();
+          }
+        }
+      })
+    );
+
+  } else if (action === 'extend') {
+    // --- EXTEND ACTION ---
+    console.log('Extend action taken for:', data.title);
+    
+    // Snooze for 1 minute (60,000 milliseconds)
+    event.waitUntil(
+      new Promise(resolve => {
+        setTimeout(() => {
+          // Show a new notification after 1 minute
+          self.registration.showNotification(`${data.title} - Reminder`, {
+            body: 'This is your 1-minute reminder. Record or extend again.',
+            icon: event.notification.icon,
+            badge: event.notification.badge,
+            vibrate: event.notification.vibrate,
+            data: data, // Pass the same data along
+            actions: [
+              { action: 'record', title: 'Record' },
+              { action: 'extend', title: 'Extend (1 min)' }
+            ]
+          }).then(resolve);
+        }, 60000);
+      })
+    );
+  }
+});
