@@ -543,12 +543,12 @@
             }
         }
 
-        // Function to send a notification
-        function sendNotification(title, fieldName) {
+        // *** NEW: Notification function for 00:00:00 ***
+        function sendNotificationAtZero(title, fieldName) {
             if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
                 navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title + ' in 1 minute!', {
-                        body: 'You can record the time now or extend the reminder.',
+                    registration.showNotification(title + ' - Time to Record!', {
+                        body: `The timer for ${title} has completed. Record now or extend.`,
                         icon: 'icon-192.png', // Make sure you have this icon
                         badge: 'icon-72.png', // And this one
                         vibrate: [200, 100, 200],
@@ -769,7 +769,7 @@
                 }
             };
             
-            // *** THIS IS THE NEW, FIXED FUNCTION ***
+            // This is the corrected time conversion function
             const getTargetTime = (timeString) => {
                 if (!timeString || !departureTimeZone) return null;
                 const timeRegex = /^(\d{1,2}):(\d{2})(:(\d{2}))?$/;
@@ -780,7 +780,6 @@
                         const now = new Date(); // Device's current time
 
                         // Get a Date object representing the *current* time in the port's zone
-                        // e.g., if device is 9:00 Perth, and port is Sydney, this creates a Date object for 12:00 (device time)
                         const nowInPortZone = new Date(now.toLocaleString('en-US', { timeZone: departureTimeZone }));
 
                         // Create a *new* Date object, starting with the port's current date
@@ -831,17 +830,21 @@
                             const seconds = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
                             el.textContent = `-${hours}:${minutes}:${seconds}`;
 
-                            // Check if diff is at or below 1 minute (60000ms) and not sent
-                            if (diff <= 60000 && !window.notificationsSent[fieldName]) {
-                                console.log(`Sending notification for ${eventName}`);
-                                window.notificationsSent[fieldName] = true; // Mark as sent
-                                sendNotification(eventName, fieldName);
-                            }
+                            // *** OLD 1-MINUTE TRIGGER REMOVED FROM HERE ***
 
                         } else {
+                            // This block is entered when diff is <= 0 (timer reached 0 or passed it)
                             el.textContent = `COMPLETED`;
                             el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600', 'text-cyan-600');
                             el.classList.add('text-slate-500');
+
+                            // *** NEW 0-MINUTE TRIGGER MOVED HERE ***
+                            // Check if timer just completed (diff is <= 0) and notification hasn't been sent
+                            if (!window.notificationsSent[fieldName]) {
+                                console.log(`Sending notification for ${eventName} at completion.`);
+                                window.notificationsSent[fieldName] = true; // Mark as sent
+                                sendNotificationAtZero(eventName, fieldName); // Call the new notification function
+                            }
                         }
                     } else {
                         // If getTargetTime fails or returns null, show the planned time or empty
