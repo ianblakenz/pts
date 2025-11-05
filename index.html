@@ -762,54 +762,42 @@
                 }
                 if (departureTimeEl && departureTimeZone) {
                     try {
-                        departureTimeEl.textContent = now.toLocaleTimeString('en-US', { timeZone: departureTimeZone, hour12: false });
+                        // THIS IS THE KEY: Ensure the port clock is *always* 24-hour and includes seconds
+                        departureTimeEl.textContent = now.toLocaleTimeString('en-GB', { timeZone: departureTimeZone, hour12: false });
                     } catch (e) {
                         departureTimeEl.textContent = "Invalid Zone";
                     }
                 }
             };
             
-            // This is the corrected time conversion function
-            const getTargetTime = (timeString) => {
-                if (!timeString || !departureTimeZone) return null;
-                const timeRegex = /^(\d{1,2}):(\d{2})(:(\d{2}))?$/;
-                const match = timeString.match(timeRegex);
+            // *** NEW SIMPLIFIED LOGIC ***
+            
+            // Helper to convert "HH:MM:SS" or "HH:MM" to total seconds
+            const timeToSeconds = (timeString) => {
+                if (!timeString) return 0;
+                const parts = timeString.split(':');
+                const hours = parseInt(parts[0]) || 0;
+                const minutes = parseInt(parts[1]) || 0;
+                const seconds = parseInt(parts[2]) || 0;
+                return (hours * 3600) + (minutes * 60) + seconds;
+            };
 
-                if (match) {
-                    try {
-                        const now = new Date(); // Device's current time
-
-                        // Get a Date object representing the *current* time in the port's zone
-                        const nowInPortZone = new Date(now.toLocaleString('en-US', { timeZone: departureTimeZone }));
-
-                        // Create a *new* Date object, starting with the port's current date
-                        const targetTimeInPortZone = new Date(
-                            nowInPortZone.getFullYear(), 
-                            nowInPortZone.getMonth(), 
-                            nowInPortZone.getDate()
-                        );
-                        
-                        // Set the target time on this new Date object
-                        targetTimeInPortZone.setHours(parseInt(match[1]));
-                        targetTimeInPortZone.setMinutes(parseInt(match[2]));
-                        targetTimeInPortZone.setSeconds(match[4] ? parseInt(match[4]) : 0);
-                        targetTimeInPortZone.setMilliseconds(0);
-                        
-                        // Get the difference in milliseconds
-                        const diff = targetTimeInPortZone.getTime() - nowInPortZone.getTime();
-
-                        // Return a new Date object that is 'diff' milliseconds in the future *from the device's perspective*.
-                        return new Date(now.getTime() + diff);
-                    } catch (e) {
-                        console.error("Error in getTargetTime:", e);
-                        return null; // Prevent crashes
-                    }
-                }
-                return null;
+            // Helper to format total seconds back to "HH:MM:SS"
+            const secondsToTime = (totalSeconds) => {
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return `-${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             };
 
             const updateCountdowns = () => {
-                const now = new Date();
+                // This is the current port time, e.g., "10:29:58"
+                const currentTimeString = departureTimeEl.textContent;
+                if (!currentTimeString || currentTimeString.includes('--')) {
+                    return; // Don't run if the clock isn't ready
+                }
+                
+                const currentSeconds = timeToSeconds(currentTimeString);
                 const docData = window.currentFlightData || {};
 
                 // Helper function for a single timer
@@ -818,37 +806,38 @@
                         el.textContent = actualTime; // If there's a recorded time, show it.
                         return;
                     }
-                    
-                    const targetTime = getTargetTime(plannedTime);
-                    
-                    if (targetTime) {
-                        const diff = targetTime.getTime() - now.getTime();
-                        
-                        if (diff > 0) {
-                            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
-                            const minutes = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
-                            const seconds = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
-                            el.textContent = `-${hours}:${minutes}:${seconds}`;
 
-                            // *** OLD 1-MINUTE TRIGGER REMOVED FROM HERE ***
+                    if (!plannedTime) {
+                        el.textContent = ''; // No planned time, do nothing
+                        return;
+                    }
 
-                        } else {
-                            // This block is entered when diff is <= 0 (timer reached 0 or passed it)
-                            el.textContent = `COMPLETED`;
-                            el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600', 'text-cyan-600');
-                            el.classList.add('text-slate-500');
+                    const plannedSeconds = timeToSeconds(plannedTime);
+                    const diffInSeconds = plannedSeconds - currentSeconds;
 
-                            // *** NEW 0-MINUTE TRIGGER MOVED HERE ***
-                            // Check if timer just completed (diff is <= 0) and notification hasn't been sent
-                            if (!window.notificationsSent[fieldName]) {
-                                console.log(`Sending notification for ${eventName} at completion.`);
-                                window.notificationsSent[fieldName] = true; // Mark as sent
-                                sendNotificationAtZero(eventName, fieldName); // Call the new notification function
-                            }
+                    if (diffInSeconds > 0) {
+                        el.textContent = secondsToTime(diffInSeconds);
+
+                        // *** NEW TRIGGER: Fire notification at T-minus 1 second ***
+                        if (diffInSeconds === 1 && !window.notificationsSent[fieldName]) {
+                            console.log(`Sending notification for ${eventName} at T-1 second.`);
+                            window.notificationsSent[fieldName] = true;
+                            sendNotificationAtZero(eventName, fieldName); // Re-using this function, title is fine
                         }
+
                     } else {
-                        // If getTargetTime fails or returns null, show the planned time or empty
-                        el.textContent = plannedTime || ''; 
+                        // This block is entered when diff is <= 0 (timer reached 0 or passed it)
+                        el.textContent = `COMPLETED`;
+                        el.classList.remove('text-green-600', 'text-orange-600', 'text-red-600', 'text-indigo-600', 'text-cyan-600');
+                        el.classList.add('text-slate-500');
+
+                        // Failsafe trigger: If the T-1s was missed (e.g., background lag)
+                        // trigger it as soon as it hits 0 or less, once.
+                        if (!window.notificationsSent[fieldName]) {
+                            console.log(`Sending failsafe notification for ${eventName}.`);
+                            window.notificationsSent[fieldName] = true;
+                            sendNotificationAtZero(eventName, fieldName);
+                        }
                     }
                 };
 
@@ -915,8 +904,8 @@
             }
             
             handleDelayStatus();
-            updateClocks();
-            setInterval(updateClocks, 1000);
+            updateClocks(); // Run once to set the clocks
+            setInterval(updateClocks, 1000); // Keep clocks ticking
         
         }
 
